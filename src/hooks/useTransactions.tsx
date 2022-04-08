@@ -1,5 +1,5 @@
-import { createContext, useEffect, useState, ReactNode } from 'react'
-import { api } from './services/api'
+import { createContext, useEffect, useState, ReactNode, useContext } from 'react'
+import { api } from '../services/api'
 
 interface Transaction {
     id: number
@@ -18,10 +18,10 @@ interface TransactionsProviderProps {
 
 interface TransactionContextData {
     transactions: Transaction[]
-    createTransaction: (transaction: TransactionInput) => void
+    createTransaction: (transaction: TransactionInput) => Promise<void>
 }
 
-export const TransactionsContext = createContext<TransactionContextData>(
+const TransactionsContext = createContext<TransactionContextData>(
     {} as TransactionContextData
 )
 
@@ -33,8 +33,16 @@ export function TransactionsProvider({ children }: TransactionsProviderProps) {
         .then(response => setTransactions(response.data.transactions))
     }, [])
 
-    function createTransaction(transaction: TransactionInput) {
-        api.post('/transactions', transaction)
+    async function createTransaction(transactionInput: TransactionInput) {
+        const response = await api.post('/transactions', {
+            ...transactionInput,
+            createdAt: new Date()
+        })
+        const { transaction } = response.data
+        setTransactions([
+            ...transactions,
+            transaction
+        ])
     }
 
     return (
@@ -42,10 +50,15 @@ export function TransactionsProvider({ children }: TransactionsProviderProps) {
             {children}
         </TransactionsContext.Provider>
     )
-
 }
 
-// Na linha 13, posso utilizar de outras 2 formas
+export function useTransactions() {
+    const context = useContext(TransactionsContext)
+
+    return context
+}
+
+// Na linha 13, posso utilizar de outras 2 formas:
 
 // interface TransactionInput {
 //     title: string
